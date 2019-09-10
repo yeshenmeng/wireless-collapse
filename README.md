@@ -1,2 +1,2 @@
 # wireless-collapse
-use BMA456 come true
+using BMA456 sensor to come true
