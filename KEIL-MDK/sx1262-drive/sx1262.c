@@ -595,6 +595,18 @@ void _SetRxMode(void)
 	_SetRx(self.radio_param.rx_mode,self.radio_param.rx_pkt_timeout);//timeout = 0
 }
 
+uint8_t _GetPtkStatus(void)
+{
+	check_busy();
+	sel_pin_set(0);
+	spi_rw(SX126X_CMD_GET_PACKET_STATUS);
+	uint8_t status = spi_rw(0xFF);
+	uint8_t rx_status = spi_rw(0xFF);
+	uint8_t rssi_sync = spi_rw(0xFF);
+	uint8_t rssi_avg = spi_rw(0xFF);
+	sel_pin_set(1);
+	return rssi_avg;
+}
 
 //接收数据
 int _Rx_Data(uint8_t *addr,uint8_t *size)
@@ -616,8 +628,7 @@ int _Rx_Data(uint8_t *addr,uint8_t *size)
 
 		_GetRxBufferStatus(size, &buf_offset);
 		_ReadBuffer(buf_offset, addr, *size);
-
-		self.radio_state.rssi = 0-(_GetRssiInst())/2;
+		self.radio_state.rssi = 0-(_GetPtkStatus())/2;
 
 		if (self.radio_param.rx_mode == CONTINUOUS_RECV_MODE)
 		{
@@ -835,6 +846,11 @@ static uint32_t __sx1262_time_on_air_get (uint8_t pkt_len)
     return air_time;
 }
 
+int8_t _sx1262_get_rssi(void)
+{
+	return self.radio_state.rssi;
+}
+
 radio_drv_funcs_t __sx1262_drv_funcs[] = {
 //设备初始化
 		_Reset,
@@ -860,6 +876,7 @@ radio_drv_funcs_t __sx1262_drv_funcs[] = {
 		_lora_dio1_irq_func,
 		_SetDIO3AsTCXOCtrl,
 		__sx1262_time_on_air_get,
+		_sx1262_get_rssi,
 };
 
 sx1262_CADParams_t __sx1262_CAD_param = {

@@ -28,10 +28,15 @@ typedef struct {
 	void (*dev_time_stamp_update)(uint32_t value);
 	void (*dev_battery_update)(uint8_t value);
 	void (*dev_temperature_update)(float value);
+	void (*dev_x_accel_update)(float value);
+	void (*dev_y_accel_update)(float value);
+	void (*dev_z_accel_update)(float value);
 	void (*dev_x_angle_update)(float value);
 	void (*dev_y_angle_update)(float value);
-	void (*dev_x_angle_threshold_update)(float value);
-	void (*dev_y_angle_threshold_update)(float value);
+	void (*dev_z_angle_update)(float value);
+	void (*dev_accel_slope_threshold_update)(uint16_t value);
+	void (*dev_consecutive_data_points_update)(uint16_t value);
+	void (*dev_lora_rssi_update)(uint8_t value);
 	void (*dev_sw_version_update)(uint8_t* value);
 	void (*dev_hw_version_update)(uint8_t* value);
 }ble_char_update_t;

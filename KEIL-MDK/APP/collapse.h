@@ -4,9 +4,6 @@
 #include "low_power_manage.h"
 
 
-#define COLLAPSE_MODE						TRIGGER_MODE	//TRIGGER_MODE：触发模式，PERIOD_MODE：周期模式
-#define COLLAPSE_TRIGGER_PERIOD				2000			//触发模式下持续触发时的采样周期
-#define COLLAPSE_SAMPLE_PERIOD				5000			//采样模式下的数据采样周期
 #define COLLAPSE_FIFO_IN_PERIOD				500				//持续触发时向FIFO写入数据的周期
 
 #define BMA456_USE_FIFO						1 				//0：禁用FIFO功能，1：使用FIFO功能
@@ -69,6 +66,8 @@ typedef struct {
 	uint8_t update_flag;
 	sens_mode_t mode;
 	uint32_t period;
+	uint16_t accel_slope_threshold;
+	uint16_t consecutive_data_points;
 	sens_data_t data;
 	
 	collapse_state_t state;
@@ -78,6 +77,11 @@ typedef struct {
 	void (*task_start)(void);
 	void (*task_stop)(void);
 	void (*task_operate)(void);
+	
+	void (*iot_set_period)(void);
+	uint16_t (*iot_set_accel_slope_threshold)(void);
+	uint16_t (*iot_set_consecutive_data_points)(void);
+	uint16_t (*iot_set_mode)(void);
 }collapse_obj_t;
 
 collapse_obj_t* collapse_init(lpm_obj_t* lpm_obj);

@@ -36,9 +36,15 @@ void sys_param_init(void)
 		memcpy(sys_param.dev_short_addr,dev_short_addr,2);
 		
 		sys_param.iot_mode = SYS_PARAM_IOT_MODE;
-		sys_param.iot_sample_interval = SYS_PARAM_IOT_SAMPLE_INTERVAL;
-		sys_param.iot_x_angle_threshold = SYS_PARAM_IOT_X_ANGLE_THRESHOLD;
-		sys_param.iot_y_angle_threshold = SYS_PARAM_IOT_Y_ANGLE_THRESHOLD;
+		sys_param.iot_sample_period = SYS_PARAM_IOT_SAMPLE_PERIOD;
+		sys_param.iot_trigger_period = SYS_PARAM_IOT_TRIGGER_PERIOD;
+		sys_param.iot_period = sys_param.iot_sample_period;
+		if(sys_param.iot_mode == 1)
+		{
+			sys_param.iot_period = sys_param.iot_trigger_period;
+		}
+		sys_param.iot_accel_slope_threshold = SYS_PARAM_IOT_ACCEL_SLOPE_THRESHOLD;
+		sys_param.iot_consecutive_data_points = SYS_PARAM_IOT_CONSECUTIVE_DATA_POINTS;
 	}
 
 	sys_param.update_flag = 0;
@@ -50,9 +56,9 @@ uint8_t sys_save_param_to_flash(void)
 	if(sys_param.update_flag == 1)
 	{
 		sys_param.update_flag = 0;
-		return flash_write(SYS_PARAM_FLASH_PAGE_ADDR,
-						  (uint32_t*)&sys_param,
-						   sizeof(sys_param)%4==0?sizeof(sys_param)/4:(sizeof(sys_param)/4+1));
+//		return flash_write(SYS_PARAM_FLASH_PAGE_ADDR,
+//						  (uint32_t*)&sys_param,
+//						   sizeof(sys_param)%4==0?sizeof(sys_param)/4:(sizeof(sys_param)/4+1));
 	}
 	
 	return 0;

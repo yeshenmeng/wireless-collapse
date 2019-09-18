@@ -23,23 +23,28 @@ NRF_SDH_BLE_OBSERVER(_name ## _obs,                                             
                      BLE_DEV_CFG_BLE_OBSERVER_PRIO,                                                 \
                      ble_dev_cfg_on_ble_evt, &_name)
 
-#define DEV_CFG_UUID_BASE        				{0x23, 0xD1, 0xBC, 0xEA, 0x5F, 0x78, 0x23, 0x15, \
-												 0xDE, 0xEF, 0x12, 0x12, 0x00, 0x00, 0x00, 0x00}
-#define DEV_CFG_UUID_SERVICE					0x1580
-#define DEV_CFG_UUID_GATEWAY_ADDR_CHAR			(DEV_CFG_UUID_SERVICE+1)
-#define DEV_CFG_UUID_LONG_ADDR_CHAR				(DEV_CFG_UUID_SERVICE+2)
-#define DEV_CFG_UUID_SHORT_ADDR_CHAR			(DEV_CFG_UUID_SERVICE+3)
-#define DEV_CFG_UUID_MODE_CHAR					(DEV_CFG_UUID_SERVICE+4)
-#define DEV_CFG_UUID_INTERVAL_CHAR				(DEV_CFG_UUID_SERVICE+5)
-#define DEV_CFG_UUID_TIME_STAMP_CHAR			(DEV_CFG_UUID_SERVICE+6)
-#define DEV_CFG_UUID_BATTERY_CHAR				(DEV_CFG_UUID_SERVICE+7)
-#define DEV_CFG_UUID_TEMPERATURE_CHAR			(DEV_CFG_UUID_SERVICE+8)
-#define DEV_CFG_UUID_X_ANGLE_CHAR				(DEV_CFG_UUID_SERVICE+9)
-#define DEV_CFG_UUID_Y_ANGLE_CHAR				(DEV_CFG_UUID_SERVICE+0)
-#define DEV_CFG_UUID_X_ANGLE_THRESHOLD_CHAR		(DEV_CFG_UUID_SERVICE+11)
-#define DEV_CFG_UUID_Y_ANGLE_THRESHOLD_CHAR		(DEV_CFG_UUID_SERVICE+12)
-#define DEV_CFG_UUID_SW_VERSION_CHAR			(DEV_CFG_UUID_SERVICE+13)
-#define DEV_CFG_UUID_HW_VERSION_CHAR			(DEV_CFG_UUID_SERVICE+14)
+#define DEV_CFG_UUID_BASE        					{0x23, 0xD1, 0xBC, 0xEA, 0x5F, 0x78, 0x23, 0x15, \
+													 0xDE, 0xEF, 0x12, 0x12, 0x00, 0x00, 0x00, 0x00}
+#define DEV_CFG_UUID_SERVICE						0x1580
+#define DEV_CFG_UUID_GATEWAY_ADDR_CHAR				(DEV_CFG_UUID_SERVICE+1)
+#define DEV_CFG_UUID_LONG_ADDR_CHAR					(DEV_CFG_UUID_SERVICE+2)
+#define DEV_CFG_UUID_SHORT_ADDR_CHAR				(DEV_CFG_UUID_SERVICE+3)
+#define DEV_CFG_UUID_MODE_CHAR						(DEV_CFG_UUID_SERVICE+4)
+#define DEV_CFG_UUID_INTERVAL_CHAR					(DEV_CFG_UUID_SERVICE+5)
+#define DEV_CFG_UUID_TIME_STAMP_CHAR				(DEV_CFG_UUID_SERVICE+6)
+#define DEV_CFG_UUID_BATTERY_CHAR					(DEV_CFG_UUID_SERVICE+7)
+#define DEV_CFG_UUID_TEMPERATURE_CHAR				(DEV_CFG_UUID_SERVICE+8)
+#define DEV_CFG_UUID_X_ACCEL_CHAR					(DEV_CFG_UUID_SERVICE+9)
+#define DEV_CFG_UUID_Y_ACCEL_CHAR					(DEV_CFG_UUID_SERVICE+10)
+#define DEV_CFG_UUID_Z_ACCEL_CHAR					(DEV_CFG_UUID_SERVICE+11)
+#define DEV_CFG_UUID_X_ANGLE_CHAR					(DEV_CFG_UUID_SERVICE+12)
+#define DEV_CFG_UUID_Y_ANGLE_CHAR					(DEV_CFG_UUID_SERVICE+13)
+#define DEV_CFG_UUID_Z_ANGLE_CHAR					(DEV_CFG_UUID_SERVICE+14)
+#define DEV_CFG_UUID_ACCEL_SLOPE_THRESHOLD_CHAR		(DEV_CFG_UUID_SERVICE+15)
+#define DEV_CFG_UUID_CONSECUTIVE_DATA_POINTS_CHAR	(DEV_CFG_UUID_SERVICE+16)
+#define DEV_CFG_UUID_LORA_RSSI_CHAR					(DEV_CFG_UUID_SERVICE+17)
+#define DEV_CFG_UUID_SW_VERSION_CHAR				(DEV_CFG_UUID_SERVICE+18)
+#define DEV_CFG_UUID_HW_VERSION_CHAR				(DEV_CFG_UUID_SERVICE+19)
 
 
 // Forward declaration of the ble_dev_cfg_t type.
@@ -82,17 +87,22 @@ struct ble_dev_cfg_s
     ble_gatts_char_handles_t    dev_time_stamp_char_handles;  
     ble_gatts_char_handles_t    dev_battery_char_handles; 
 	ble_gatts_char_handles_t	dev_temperature_char_handles; 
-	ble_gatts_char_handles_t	dev_x_angle_char_handles; 
-	ble_gatts_char_handles_t	dev_y_angle_char_handles; 
-	ble_gatts_char_handles_t	dev_x_angle_threshold_char_handles; 
-	ble_gatts_char_handles_t	dev_y_angle_threshold_char_handles; 
+	ble_gatts_char_handles_t	dev_x_accel_char_handles; 
+	ble_gatts_char_handles_t	dev_y_accel_char_handles;
+	ble_gatts_char_handles_t	dev_z_accel_char_handles;
+	ble_gatts_char_handles_t	dev_x_angle_char_handles;
+	ble_gatts_char_handles_t	dev_y_angle_char_handles;
+	ble_gatts_char_handles_t	dev_z_angle_char_handles;
+	ble_gatts_char_handles_t	dev_accel_slope_threshold_char_handles; 
+	ble_gatts_char_handles_t	dev_consecutive_data_points_char_handles; 
+	ble_gatts_char_handles_t	dev_lora_rssi_char_handles; 
     ble_gatts_char_handles_t    dev_sw_version_char_handles; 
     ble_gatts_char_handles_t    dev_hw_version_char_handles;
     uint8_t                     uuid_type;           /**< UUID type for the Service. */
 	ble_dev_cfg_gateway_write_handler_t dev_gateway_write_handler; /**< Event handler to be called when the Characteristic is written. */
 	ble_dev_cfg_long_addr_write_handler_t dev_long_addr_write_handler;
 	ble_dev_cfg_short_addr_write_handler_t dev_short_addr_write_handler;
-	ble_dev_cfg_time_stamp_read_handler_t dev_time_stamp_read_handler;
+	ble_dev_cfg_time_stamp_read_handler_t dev_time_stamp_read_handler; /**< Event handler to be called when the Characteristic is read. */
 //	ble_dev_cfg_interval_write_handler_t dev_interval_write_handler;
 //	ble_dev_cfg_time_stamp_write_handler_t dev_time_stamp_write_handler;
 //	ble_dev_cfg_battery_write_handler_t dev_battery_write_handler;

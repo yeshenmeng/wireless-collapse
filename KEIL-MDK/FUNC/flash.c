@@ -1,11 +1,11 @@
 /********************************************************************************
   * 文件名： flash.c 
   * 描述：   flash读写操作
-  * 库版本： V3.5.0
-  * 日期：   2015.8.10
-  * 作者：   Steven
+  * 库版本： V1.1.1
+  * 日期：   2019.9.19
+  * 作者：   HYP
   * 更新：
-  * 	1. 修改为HAL库的写法 （徐辉 2019.2.14)
+  * 		 1. 修改为nordic的写法 （hyp 2019.9.18)
   * 
   *
 ********************************************************************************/  
@@ -22,10 +22,9 @@
 #else
 #include "nrf_drv_clock.h"
 #include "nrf_fstorage_nvmc.h"
+#include "nrf_nvmc.h"
 #endif
 
-
-//static FLASH_EraseInitTypeDef _eraseConfig;
 
 static void wait_for_flash_ready(nrf_fstorage_t const * p_fstorage)
 {
@@ -45,26 +44,22 @@ static uint32_t nrf_flash_end_addr_get()
 
 static void fstorage_evt_handler(nrf_fstorage_evt_t* p_evt)
 {
-	//FS操作错误
-	if(p_evt->result != NRF_SUCCESS)
+	
+	if(p_evt->result != NRF_SUCCESS) //FS操作错误
 	{
 		return;
 	}
 	
 	switch((uint8_t)p_evt->id)
 	{
-		//读完成事件
-		case NRF_FSTORAGE_EVT_READ_RESULT:
+		case NRF_FSTORAGE_EVT_READ_RESULT: //读完成事件
 			break;
 		
-		//写完成事件
-		case NRF_FSTORAGE_EVT_WRITE_RESULT:
+		case NRF_FSTORAGE_EVT_WRITE_RESULT: //写完成事件
 			break;
 		
-		//擦除完成事件
-		case NRF_FSTORAGE_EVT_ERASE_RESULT:
+		case NRF_FSTORAGE_EVT_ERASE_RESULT: //擦除完成事件
 			break;
-		
 		default: break;
 	}
 }
@@ -78,6 +73,7 @@ nrf_fstorage_api_t* p_fs_api = &nrf_fstorage_sd;
 #else
 nrf_fstorage_api_t* p_fs_api = &nrf_fstorage_nvmc;
 #endif
+
 /*******************************************************************************
 * Function Name  : fs_flash_init
 * Description    : flash的初始化函数
@@ -141,46 +137,30 @@ void flash_read(uint32_t startAddr, uint8_t *pData, uint32_t size)
 	APP_ERROR_CHECK(err_code);
 }
 #else
-//uint8_t flash_write(uint32_t pageStartAddr, uint32_t *pData, uint32_t size)
-//{
-//	uint32_t endAddr = pageStartAddr + 4*size;
-//	uint8_t pageNb = (((endAddr - pageStartAddr) % TH_FLASH_PAGE_SIZE_2_POWER) > 0) ?
-//									 (((endAddr - pageStartAddr) >> TH_FLASH_PAGE_SIZE_2_POWER) + 1) :
-//									 ((endAddr - pageStartAddr) >> TH_FLASH_PAGE_SIZE_2_POWER);
-//	
-//	for(uint8_t i=0; i<pageNb; i++)
-//	{
-//		nrf_nvmc_page_erase(pageStartAddr + i * TH_FLASH_PAGE_SIZE_2_POWER);
-//	}
-
-//	nrf_nvmc_write_words(pageStartAddr, pData, size);
-
-//	return 0;
-//}
-
-//void flash_read(uint32_t startAddr,uint8_t *pData, uint32_t size)
-//{
-//	uint8_t i;
-//	for(i = 0; i<size; i++)
-//	{
-//		pData[i] = *((uint8_t*) startAddr);
-//		startAddr++;
-//	}
-//}
-
-/*******************************************************************************
-* Function Name  : flash_read
-* Description    : flash的读函数
-* Input          : u32 startAddr,u32 *p_data,u32 size
-* Attention		 : 输入数据一定是u32 的指针，即数据一定是按照4字节对齐写入的。所以：size也是u32的个数（字节数的4分之一）
-*******************************************************************************/
-void flash_read(uint32_t startAddr,uint32_t *pData,uint32_t size)
+uint8_t flash_write(uint32_t pageStartAddr, uint32_t *pData, uint32_t size)
 {
-	uint32_t i;
+	uint32_t endAddr = pageStartAddr + 4*size;
+	uint8_t pageNb = (((endAddr - pageStartAddr) % TH_FLASH_PAGE_SIZE_2_POWER) > 0) ?
+					 (((endAddr - pageStartAddr) >> TH_FLASH_PAGE_SIZE_2_POWER) + 1) :
+					 ((endAddr - pageStartAddr) >> TH_FLASH_PAGE_SIZE_2_POWER);
+	
+	for(uint8_t i=0; i<pageNb; i++)
+	{
+		nrf_nvmc_page_erase(pageStartAddr + i * TH_FLASH_PAGE_SIZE_2_POWER);
+	}
+
+	nrf_nvmc_write_words(pageStartAddr, pData, size);
+
+	return 0;
+}
+
+void flash_read(uint32_t startAddr,uint8_t *pData, uint32_t size)
+{
+	uint8_t i;
 	for(i = 0; i<size; i++)
 	{
-		pData[i] = *((uint32_t*) startAddr);
-		startAddr += 4;
+		pData[i] = *((uint8_t*) startAddr);
+		startAddr++;
 	}
 }
 #endif

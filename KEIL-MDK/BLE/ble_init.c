@@ -354,6 +354,42 @@ static void ble_dev_characteristic_temperature_update(float value)
 	APP_ERROR_CHECK(err_code);
 }
 
+static void ble_dev_characteristic_x_accel_update(float value)
+{
+	ret_code_t err_code;
+	ble_gatts_value_t ble_gatts_value = {
+		.len = 4,
+		.offset = 0,
+		.p_value = (uint8_t*)&value,
+	};
+	err_code = sd_ble_gatts_value_set(m_conn_handle, m_dev_cfg.dev_x_accel_char_handles.value_handle, &ble_gatts_value);
+	APP_ERROR_CHECK(err_code);
+}
+
+static void ble_dev_characteristic_y_accel_update(float value)
+{
+	ret_code_t err_code;
+	ble_gatts_value_t ble_gatts_value = {
+		.len = 4,
+		.offset = 0,
+		.p_value = (uint8_t*)&value,
+	};
+	err_code = sd_ble_gatts_value_set(m_conn_handle, m_dev_cfg.dev_y_accel_char_handles.value_handle, &ble_gatts_value);
+	APP_ERROR_CHECK(err_code);
+}
+
+static void ble_dev_characteristic_z_accel_update(float value)
+{
+	ret_code_t err_code;
+	ble_gatts_value_t ble_gatts_value = {
+		.len = 4,
+		.offset = 0,
+		.p_value = (uint8_t*)&value,
+	};
+	err_code = sd_ble_gatts_value_set(m_conn_handle, m_dev_cfg.dev_z_accel_char_handles.value_handle, &ble_gatts_value);
+	APP_ERROR_CHECK(err_code);
+}
+
 static void ble_dev_characteristic_x_angle_update(float value)
 {
 	ret_code_t err_code;
@@ -378,7 +414,7 @@ static void ble_dev_characteristic_y_angle_update(float value)
 	APP_ERROR_CHECK(err_code);
 }
 
-static void ble_dev_characteristic_x_angle_threshold_update(float value)
+static void ble_dev_characteristic_z_angle_update(float value)
 {
 	ret_code_t err_code;
 	ble_gatts_value_t ble_gatts_value = {
@@ -386,19 +422,43 @@ static void ble_dev_characteristic_x_angle_threshold_update(float value)
 		.offset = 0,
 		.p_value = (uint8_t*)&value,
 	};
-	err_code = sd_ble_gatts_value_set(m_conn_handle, m_dev_cfg.dev_x_angle_threshold_char_handles.value_handle, &ble_gatts_value);
+	err_code = sd_ble_gatts_value_set(m_conn_handle, m_dev_cfg.dev_z_angle_char_handles.value_handle, &ble_gatts_value);
 	APP_ERROR_CHECK(err_code);
 }
 
-static void ble_dev_characteristic_y_angle_threshold_update(float value)
+static void ble_dev_characteristic_accel_slope_threshold_update(uint16_t value)
 {
 	ret_code_t err_code;
 	ble_gatts_value_t ble_gatts_value = {
-		.len = 4,
+		.len = 2,
 		.offset = 0,
 		.p_value = (uint8_t*)&value,
 	};
-	err_code = sd_ble_gatts_value_set(m_conn_handle, m_dev_cfg.dev_y_angle_threshold_char_handles.value_handle, &ble_gatts_value);
+	err_code = sd_ble_gatts_value_set(m_conn_handle, m_dev_cfg.dev_accel_slope_threshold_char_handles.value_handle, &ble_gatts_value);
+	APP_ERROR_CHECK(err_code);
+}
+
+static void ble_dev_characteristic_consecutive_data_points_update(uint16_t value)
+{
+	ret_code_t err_code;
+	ble_gatts_value_t ble_gatts_value = {
+		.len = 2,
+		.offset = 0,
+		.p_value = (uint8_t*)&value,
+	};
+	err_code = sd_ble_gatts_value_set(m_conn_handle, m_dev_cfg.dev_consecutive_data_points_char_handles.value_handle, &ble_gatts_value);
+	APP_ERROR_CHECK(err_code);
+}
+
+static void ble_dev_characteristic_lora_rssi_update(uint8_t value)
+{
+	ret_code_t err_code;
+	ble_gatts_value_t ble_gatts_value = {
+		.len = 1,
+		.offset = 0,
+		.p_value = (uint8_t*)&value,
+	};
+	err_code = sd_ble_gatts_value_set(m_conn_handle, m_dev_cfg.dev_lora_rssi_char_handles.value_handle, &ble_gatts_value);
 	APP_ERROR_CHECK(err_code);
 }
 
@@ -452,10 +512,15 @@ static ble_char_update_t ble_char_update = {
 	.dev_time_stamp_update = ble_dev_characteristic_time_stamp_update,
 	.dev_battery_update = ble_dev_characteristic_battery_update,
 	.dev_temperature_update = ble_dev_characteristic_temperature_update,
+	.dev_x_accel_update = ble_dev_characteristic_x_accel_update,
+	.dev_y_accel_update = ble_dev_characteristic_y_accel_update,
+	.dev_z_accel_update = ble_dev_characteristic_z_accel_update,
 	.dev_x_angle_update = ble_dev_characteristic_x_angle_update,
 	.dev_y_angle_update = ble_dev_characteristic_y_angle_update,
-	.dev_x_angle_threshold_update = ble_dev_characteristic_x_angle_threshold_update,
-	.dev_y_angle_threshold_update = ble_dev_characteristic_y_angle_threshold_update,
+	.dev_z_angle_update = ble_dev_characteristic_z_angle_update,
+	.dev_accel_slope_threshold_update = ble_dev_characteristic_accel_slope_threshold_update,
+	.dev_consecutive_data_points_update = ble_dev_characteristic_consecutive_data_points_update,
+	.dev_lora_rssi_update = ble_dev_characteristic_lora_rssi_update,
 	.dev_sw_version_update = ble_dev_characteristic_sw_version_update,
 	.dev_hw_version_update = ble_dev_characteristic_hw_version_update,
 };
@@ -982,14 +1047,19 @@ void ble_softdev_init(void)
 	ble_char_update.dev_long_addr_update(param->dev_long_addr);
 	ble_char_update.dev_short_addr_update(param->dev_short_addr);
 	ble_char_update.dev_sample_mode_update(param->iot_mode);
-	ble_char_update.dev_sample_interval_update(param->iot_sample_interval);
+	ble_char_update.dev_sample_interval_update(param->iot_period);
 	ble_char_update.dev_time_stamp_update(0);
 	ble_char_update.dev_battery_update(100);
 	ble_char_update.dev_temperature_update(0);
+	ble_char_update.dev_x_accel_update(0);
+	ble_char_update.dev_y_accel_update(0);
+	ble_char_update.dev_z_accel_update(0);
 	ble_char_update.dev_x_angle_update(0);
 	ble_char_update.dev_y_angle_update(0);
-	ble_char_update.dev_x_angle_threshold_update(param->iot_x_angle_threshold);
-	ble_char_update.dev_y_angle_threshold_update(param->iot_y_angle_threshold);
+	ble_char_update.dev_z_angle_update(0);
+	ble_char_update.dev_accel_slope_threshold_update(param->iot_accel_slope_threshold);
+	ble_char_update.dev_consecutive_data_points_update(param->iot_consecutive_data_points);
+	ble_char_update.dev_lora_rssi_update(0);
 	uint8_t sw_version[] = {(uint16_t)SYS_SW_MODIFY_VERSION,(uint16_t)SYS_SW_MODIFY_VERSION>>8,SYS_SW_SUB_VERSION,SYS_SW_MAIN_VERSION};
 	ble_char_update.dev_sw_version_update(sw_version);
 	uint8_t hw_version[] = {(uint16_t)SYS_HW_MODIFY_VERSION,(uint16_t)SYS_HW_MODIFY_VERSION>>8,SYS_HW_SUB_VERSION,SYS_HW_MAIN_VERSION};

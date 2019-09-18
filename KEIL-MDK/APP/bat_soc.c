@@ -52,7 +52,7 @@ static void bat_soc_operate(void)
 			bat_soc_state = BAT_SOC_IDLE;
 			bat_soc_obj.state = BAT_SOC_ACTIVE;
 			uint32_t time_stamp = calendar->get_time_stamp();
-			uint32_t sample_interval = param->iot_sample_interval;
+			uint32_t sample_interval = param->iot_period;
 			bat_soc_obj.sleep_time = sample_interval - time_stamp % sample_interval;
 			(bat_soc_obj.sleep_time>=2) ? (bat_soc_obj.sleep_time-=1) : (1); //提前1秒醒来进行电量计算
 			timer->bat_soc->start(bat_soc_obj.sleep_time*1000);

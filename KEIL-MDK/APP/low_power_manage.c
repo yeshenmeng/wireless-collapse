@@ -140,7 +140,7 @@ static void lpm_task_operate(lpm_handler_t enter, lpm_handler_t exit)
 	if(RTC_STATUS_GET() == RTC_STOP)
 	{
 		swt_mod_t* timer = swt_get_handle();
-		timer->sys_idle->start(5000);
+//		timer->sys_idle->start(5000);
 	}
 	
 	if(enter)

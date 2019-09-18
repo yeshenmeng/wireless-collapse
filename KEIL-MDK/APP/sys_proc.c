@@ -47,6 +47,8 @@ void sys_startup(void)
 		SET_TASK_EVT(SYS_TASK_EVT_BLE);
 #endif
 	}
+	
+	SET_TASK_EVT(SYS_TASK_EVT_BLE);
 }
 
 void sys_task_schd(void)
@@ -127,11 +129,9 @@ void ble_task_stop_handler(void* param)
 #endif
 }
 
-extern void collapse_task_test(void* param);
 /* 崩塌计任务停止事件 */
 void collapse_task_stop_handler(void* param)
 {
-	collapse_task_test(param);
 	if(*(collapse_state_t*)param == COLLAPSE_ACTIVE)
 	{
 		SET_TASK_EVT(SYS_TASK_EVT_LORA); //启动LORA任务

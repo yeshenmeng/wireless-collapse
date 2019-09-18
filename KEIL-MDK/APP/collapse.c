@@ -324,11 +324,11 @@ static uint16_t collapse_reset(void)
 }
 
 #if (BMA456_USE_FIFO == 1)
-static void bma456_read_fifo(void)
+static uint16_t bma456_read_fifo(void)
 {
-	uint8_t fifo_len = 0;
+	uint16_t fifo_len = 0;
 	memset(&bma4_data, 0X00, sizeof(bma4_data));
-	bma4_get_fifo_length((uint16_t*)&fifo_len, &bma456_dev);
+	bma4_get_fifo_length(&fifo_len, &bma456_dev);
 	bma4_read_fifo_data(&bma456_dev);
 	if(fifo_len > 0)
 	{
@@ -342,6 +342,7 @@ static void bma456_read_fifo(void)
 		bma4_data.y = bma4_fifo_data[fifo_len/7-1].y;
 		bma4_data.z = bma4_fifo_data[fifo_len/7-1].z;
 	}
+	return fifo_len;
 }
 #endif
 
@@ -441,25 +442,30 @@ static void signal_ext_int_cfg(void)
 	nrf_drv_gpiote_in_event_enable(ANY_MOTION_INT_PIN, true);
 }
 
-static uint16_t collapse_config_feature(void)
+static void signal_ext_cfg_default(void)
 {
-	uint16_t ret = 0;
-	
+	nrfx_gpiote_in_event_disable(ANY_MOTION_INT_PIN);
+	nrfx_gpiote_in_uninit(ANY_MOTION_INT_PIN);
+}
+
+static uint16_t collapse_config_feature(void)
+{	
 	struct bma4_int_pin_config int_pin_config = {0};
 	int_pin_config.edge_ctrl = BMA4_EDGE_TRIGGER;
 	int_pin_config.lvl = BMA4_ACTIVE_HIGH;
 	int_pin_config.od = BMA4_PUSH_PULL;
 	int_pin_config.output_en = BMA4_OUTPUT_ENABLE;
 	int_pin_config.input_en = BMA4_INPUT_DISABLE;
-	ret |= bma4_set_int_pin_config(&int_pin_config, 0, &bma456_dev);
+	
+	uint16_t ret = bma4_set_int_pin_config(&int_pin_config, 0, &bma456_dev);
 	memset(&int_pin_config, 0X00, sizeof(int_pin_config));
 	nrf_delay_ms(1);
 	
 	bma4_set_interrupt_mode(BMA4_LATCH_MODE, &bma456_dev);
 	nrf_delay_ms(1);
-	
+
 	/* Enable/select the no-motion feature */
-	ret |= bma456_feature_enable(BMA456_NO_MOTION, 1, &bma456_dev);
+	ret |= bma456_feature_enable(BMA456_NO_MOTION, BMA4_DISABLE, &bma456_dev);
 	nrf_delay_ms(1);
 	
 	/*Enable the axis as per requirement for Any/no-motion. Here all axis has been enabled */
@@ -470,18 +476,18 @@ static uint16_t collapse_config_feature(void)
 	/* Slope threshold value for Any-motion No-motion detection in 5.11g format.
 	   Range is 0 to 1g. Default value is 0xAA(170) = 83mg 
 	   1LSB = 1000mg / 2^11 = 0.48828125mg */
-	anymotion_config.threshold = (uint16_t)(100 * pow(2, 11) / 1000.0);
-	/* Defines the number of consecutive data points for which the threshold
+	anymotion_config.threshold = (uint16_t)(collapse_obj.accel_slope_threshold * pow(2, 11) / 1000.0);
+	/* Defines the number of consecutive data points for which the threshold10
 	   condition must be respected, for interrupt assertion.
 	   It is expressed in in 50 Hz samples (20ms). Range is 0 to 163sec. Default value is 5=100ms.  
 	   1LSB = 1000ms / freq */
-	anymotion_config.duration = 2; //time = 1000ms / accel_conf.odr * duration
+	anymotion_config.duration = collapse_obj.consecutive_data_points; //time = 1000ms / accel_conf.odr * duration
 	anymotion_config.nomotion_sel = 0;
 	ret |= bma456_set_any_motion_config(&anymotion_config, &bma456_dev);
 	nrf_delay_ms(1);
 	
 	/* Enable/select the Any-motion feature */
-	ret |= bma456_feature_enable(BMA456_ANY_MOTION, 1, &bma456_dev);
+	ret |= bma456_feature_enable(BMA456_ANY_MOTION, BMA4_ENABLE, &bma456_dev);
 	nrf_delay_ms(1);
 	
 	/* Map the motion interupt to INT pin1 */
@@ -576,7 +582,7 @@ static void collapse_operate(void)
 			{
 				fifo_mtx = 1;
 				swt_mod_t* timer = swt_get_handle();
-				timer->collapse_fifo_out->start(collapse_obj.period);
+				timer->collapse_fifo_out->start(collapse_obj.period*1000);
 			}
 			collapse_task_stop_handler((void*)&collapse_obj.state);
 		}
@@ -603,25 +609,128 @@ static void collapse_operate(void)
 	}
 }
 
-/* collapse初始化 */
-collapse_obj_t* collapse_init(lpm_obj_t* lpm_obj)
+void collapse_iot_set_period(void)
 {
-	collapse_obj.update_flag = 0;
-	collapse_obj.mode = COLLAPSE_MODE;
+	sys_param_t* param = sys_param_get_handle();
+	collapse_obj.period = param->iot_period;
+}
+
+uint16_t collapse_iot_set_accel_slope_threshold(void)
+{
+	collapse_cfg();
+	sys_param_t* param = sys_param_get_handle();
+	collapse_obj.accel_slope_threshold = param->iot_accel_slope_threshold;
+	struct bma456_anymotion_config anymotion_config = {0};
+	anymotion_config.threshold = (uint16_t)(collapse_obj.accel_slope_threshold * pow(2, 11) / 1000.0);
+	anymotion_config.duration = collapse_obj.consecutive_data_points;
+	anymotion_config.nomotion_sel = 0;
+	uint16_t ret = bma456_set_any_motion_config(&anymotion_config, &bma456_dev);
+	nrf_delay_ms(1);
+	collapse_cfg_default();
+	return ret;
+}
+
+uint16_t collapse_iot_set_consecutive_data_points(void)
+{
+	collapse_cfg();
+	sys_param_t* param = sys_param_get_handle();
+	collapse_obj.consecutive_data_points = param->iot_consecutive_data_points;
+	struct bma456_anymotion_config anymotion_config = {0};
+	anymotion_config.threshold = (uint16_t)(collapse_obj.accel_slope_threshold * pow(2, 11) / 1000.0);
+	anymotion_config.duration = collapse_obj.consecutive_data_points;
+	anymotion_config.nomotion_sel = 0;
+	uint16_t ret = bma456_set_any_motion_config(&anymotion_config, &bma456_dev);
+	nrf_delay_ms(1);
+	collapse_cfg_default();
+	return ret;
+}
+
+uint16_t collapse_iot_set_mode(void)
+{
+	uint16_t ret = 0;
+
+	sys_param_t* param = sys_param_get_handle();
+	collapse_obj.mode = (sens_mode_t)param->iot_mode;
+	
 	if(collapse_obj.mode == PERIOD_MODE)
 	{
-		collapse_obj.period = COLLAPSE_SAMPLE_PERIOD;
+		collapse_cfg();
+		
+		/* 关闭硬件中断 */
+		signal_ext_cfg_default();
+		
+		ret = bma4_set_advance_power_save(BMA4_DISABLE, &bma456_dev);
+		nrf_delay_ms(1);
+		
+		/* 关闭所有轴的feature功能 */
+		ret |= bma456_anymotion_enable_axis(BMA456_ALL_AXIS_DIS, &bma456_dev);
+		nrf_delay_ms(1);
+		
+		/* 关闭any_motion功能 */
+		ret |= bma456_feature_enable(BMA456_ANY_MOTION, BMA4_DISABLE, &bma456_dev);
+		nrf_delay_ms(1);
+		
+		/* 关闭中断功能 */
+		ret |= bma456_map_interrupt(BMA4_INTR1_MAP, BMA456_ANY_NO_MOTION_INT, BMA4_DISABLE, &bma456_dev);
+		nrf_delay_ms(1);
+		
+#if (BMA456_USE_FIFO == 1)
+		ret |= bma4_map_interrupt(BMA4_INTR1_MAP, BMA4_FIFO_WM_INT, BMA4_DISABLE, &bma456_dev);
+		nrf_delay_ms(1);
+		
+		ret |= bma4_map_interrupt(BMA4_INTR1_MAP, BMA4_FIFO_FULL_INT, BMA4_DISABLE, &bma456_dev);
+		nrf_delay_ms(1);
+		
+		/* 关闭FIFO */
+		ret |= bma4_set_fifo_config((BMA4_FIFO_STOP_ON_FULL | BMA4_FIFO_ACCEL | BMA4_FIFO_HEADER), BMA4_DISABLE, &bma456_dev);
+		nrf_delay_ms(1);
+#endif
+		
+		ret |= bma4_set_advance_power_save(BMA4_ENABLE, &bma456_dev);
+		nrf_delay_ms(1);
+		
+		collapse_cfg_default();
+		collapse_obj.period = param->iot_sample_period;
 	}
 	else if(collapse_obj.mode == TRIGGER_MODE)
 	{
-		collapse_obj.period = COLLAPSE_TRIGGER_PERIOD;
+		collapse_cfg();
+		
+		/* 配置特征 */
+		ret |= collapse_config_feature();
+		
+		/* 配置FIFO缓存 */
+#if (BMA456_USE_FIFO == 1)
+		ret |= collapse_config_fifo_buffer();
+#endif
+		
+		collapse_cfg_default();
+		collapse_obj.period = param->iot_trigger_period;
 	}
+	
+	return ret;
+}
+
+/* collapse初始化 */
+collapse_obj_t* collapse_init(lpm_obj_t* lpm_obj)
+{
+	sys_param_t* param = sys_param_get_handle();
+	collapse_obj.update_flag = 0;
+	collapse_obj.mode = (sens_mode_t)param->iot_mode;
+	collapse_obj.period = param->iot_period;
+	collapse_obj.accel_slope_threshold = param->iot_accel_slope_threshold;
+	collapse_obj.consecutive_data_points = param->iot_consecutive_data_points;
 	
 	collapse_obj.state = COLLAPSE_IDLE;
 	collapse_obj.lpm_obj = lpm_obj;
 	collapse_obj.task_start = collapse_task_start;
 	collapse_obj.task_stop = collapse_task_stop;
 	collapse_obj.task_operate = collapse_operate;
+	
+	collapse_obj.iot_set_mode = collapse_iot_set_mode;
+	collapse_obj.iot_set_period = collapse_iot_set_period;
+	collapse_obj.iot_set_accel_slope_threshold = collapse_iot_set_accel_slope_threshold;
+	collapse_obj.iot_set_consecutive_data_points = collapse_iot_set_consecutive_data_points;
 	
 	collapse_obj.lpm_obj->task_reg(COLLAPSE_TASK_ID);
 	
@@ -642,25 +751,6 @@ collapse_obj_t* collapse_init(lpm_obj_t* lpm_obj)
 	
 	return &collapse_obj;
 }
-
-void collapse_task_test(void* param)
-{
-//	if(*(collapse_state_t*)param == COLLAPSE_ACTIVE)
-//		printf("TEMP:%f, X_ACC:%f, Y_ACC:%f, Z_ACC:%f, X_ANG:%f, Y_ANG:%f, Z_ANG:%f\n",
-//			collapse_obj.data.temp_c,
-//			collapse_obj.data.accel.x_accel,
-//			collapse_obj.data.accel.y_accel,
-//			collapse_obj.data.accel.z_accel,
-//			collapse_obj.data.angle.x_angle,
-//			collapse_obj.data.angle.y_angle,
-//			collapse_obj.data.angle.z_angle);
-}
-
-
-
-
-
-
 
 
 

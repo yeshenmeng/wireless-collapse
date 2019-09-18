@@ -186,7 +186,7 @@ uint32_t ble_dev_cfg_init(ble_dev_cfg_t * p_dev_cfg, const ble_dev_cfg_init_t * 
 	add_char_params.uuid = DEV_CFG_UUID_TIME_STAMP_CHAR;
 	add_char_params.init_len = 4;
 	add_char_params.max_len = 4;
-	add_char_params.is_defered_read = 1;
+	add_char_params.is_defered_read = 1; //读权限控制（对端设备设备访问此特征值需要程序授权）
     err_code = characteristic_add(p_dev_cfg->service_handle, &add_char_params, &p_dev_cfg->dev_time_stamp_char_handles);
     if (err_code != NRF_SUCCESS)
     {
@@ -212,6 +212,33 @@ uint32_t ble_dev_cfg_init(ble_dev_cfg_t * p_dev_cfg, const ble_dev_cfg_init_t * 
         return err_code;
     }
 	
+	add_char_params.uuid = DEV_CFG_UUID_X_ACCEL_CHAR;
+	add_char_params.init_len = 4;
+	add_char_params.max_len = 4;	
+    err_code = characteristic_add(p_dev_cfg->service_handle, &add_char_params, &p_dev_cfg->dev_x_accel_char_handles);
+    if (err_code != NRF_SUCCESS)
+    {
+        return err_code;
+    }	
+
+	add_char_params.uuid = DEV_CFG_UUID_Y_ACCEL_CHAR;
+	add_char_params.init_len = 4;
+	add_char_params.max_len = 4;	
+    err_code = characteristic_add(p_dev_cfg->service_handle, &add_char_params, &p_dev_cfg->dev_y_accel_char_handles);
+    if (err_code != NRF_SUCCESS)
+    {
+        return err_code;
+    }
+	
+	add_char_params.uuid = DEV_CFG_UUID_Z_ACCEL_CHAR;
+	add_char_params.init_len = 4;
+	add_char_params.max_len = 4;	
+    err_code = characteristic_add(p_dev_cfg->service_handle, &add_char_params, &p_dev_cfg->dev_z_accel_char_handles);
+    if (err_code != NRF_SUCCESS)
+    {
+        return err_code;
+    }
+	
 	add_char_params.uuid = DEV_CFG_UUID_X_ANGLE_CHAR;
 	add_char_params.init_len = 4;
 	add_char_params.max_len = 4;	
@@ -219,8 +246,8 @@ uint32_t ble_dev_cfg_init(ble_dev_cfg_t * p_dev_cfg, const ble_dev_cfg_init_t * 
     if (err_code != NRF_SUCCESS)
     {
         return err_code;
-    }	
-
+    }
+	
 	add_char_params.uuid = DEV_CFG_UUID_Y_ANGLE_CHAR;
 	add_char_params.init_len = 4;
 	add_char_params.max_len = 4;	
@@ -230,23 +257,41 @@ uint32_t ble_dev_cfg_init(ble_dev_cfg_t * p_dev_cfg, const ble_dev_cfg_init_t * 
         return err_code;
     }
 	
-	add_char_params.uuid = DEV_CFG_UUID_X_ANGLE_THRESHOLD_CHAR;
+	add_char_params.uuid = DEV_CFG_UUID_Z_ANGLE_CHAR;
 	add_char_params.init_len = 4;
 	add_char_params.max_len = 4;	
-    err_code = characteristic_add(p_dev_cfg->service_handle, &add_char_params, &p_dev_cfg->dev_x_angle_threshold_char_handles);
+    err_code = characteristic_add(p_dev_cfg->service_handle, &add_char_params, &p_dev_cfg->dev_z_angle_char_handles);
+    if (err_code != NRF_SUCCESS)
+    {
+        return err_code;
+    }
+	
+	add_char_params.uuid = DEV_CFG_UUID_ACCEL_SLOPE_THRESHOLD_CHAR;
+	add_char_params.init_len = 2;
+	add_char_params.max_len = 2;	
+    err_code = characteristic_add(p_dev_cfg->service_handle, &add_char_params, &p_dev_cfg->dev_accel_slope_threshold_char_handles);
     if (err_code != NRF_SUCCESS)
     {
         return err_code;
     }			
 
-	add_char_params.uuid = DEV_CFG_UUID_Y_ANGLE_THRESHOLD_CHAR;
-	add_char_params.init_len = 4;
-	add_char_params.max_len = 4;	
-    err_code = characteristic_add(p_dev_cfg->service_handle, &add_char_params, &p_dev_cfg->dev_y_angle_threshold_char_handles);
+	add_char_params.uuid = DEV_CFG_UUID_CONSECUTIVE_DATA_POINTS_CHAR;
+	add_char_params.init_len = 2;
+	add_char_params.max_len = 2;	
+    err_code = characteristic_add(p_dev_cfg->service_handle, &add_char_params, &p_dev_cfg->dev_consecutive_data_points_char_handles);
     if (err_code != NRF_SUCCESS)
     {
         return err_code;
-    }		
+    }
+	
+	add_char_params.uuid = DEV_CFG_UUID_LORA_RSSI_CHAR;
+	add_char_params.init_len = 1;
+	add_char_params.max_len = 1;	
+    err_code = characteristic_add(p_dev_cfg->service_handle, &add_char_params, &p_dev_cfg->dev_lora_rssi_char_handles);
+    if (err_code != NRF_SUCCESS)
+    {
+        return err_code;
+    }
 	
 	add_char_params.uuid = DEV_CFG_UUID_SW_VERSION_CHAR;
 	add_char_params.init_len = 4;

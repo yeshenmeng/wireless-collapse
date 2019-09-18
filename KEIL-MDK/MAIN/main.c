@@ -127,18 +127,31 @@ static void lfclk_cfg(void)
  * @param  sensor: 指向iot_object_t结构的句柄
  * @retval None
  */
-void iot_set_prop(iot_object_t *sensor) {
-	//init addr, long addr, short addr are fixed. No need to set
-	sensor->setPropCount(12);
+void iot_set_prop(iot_object_t *sensor)
+{
+	/* init addr, long addr, short addr are fixed. No need to set */
+#if (IOT_PROTOCOL_WITH_ANGLE == 0)
+	sensor->setPropCount(13);
+#elif (IOT_PROTOCOL_WITH_ANGLE == 1)
+	sensor->setPropCount(16);
+#endif
+	
 	sensor->setPropLen(SAMPLE_MODE_ID, 1);
 	sensor->setPropLen(SAMPLE_INTERVAL_ID, 4);
 	sensor->setPropLen(TIME_STAMP_ID, 4);
+	sensor->setPropLen(ACCEL_SLOPE_THRESHOLD_ID, 2);
+	sensor->setPropLen(CONSECUTIVE_DATA_POINTS_ID, 2);
 	sensor->setPropLen(BATTERY_LEVEL_ID, 1);
 	sensor->setPropLen(TEMPERATURE_ID, 4);
+	sensor->setPropLen(DATA_X_ACCEL_ID, 4);
+	sensor->setPropLen(DATA_Y_ACCEL_ID, 4);
+	sensor->setPropLen(DATA_Z_ACCEL_ID, 4);
+	
+#if (IOT_PROTOCOL_WITH_ANGLE == 1)	
 	sensor->setPropLen(DATA_X_ANGLE_ID, 4);
 	sensor->setPropLen(DATA_Y_ANGLE_ID, 4);
-	sensor->setPropLen(DATA_X_THRESHOLD_ID, 4);
-	sensor->setPropLen(DATA_Y_THRESHOLD_ID, 4);
+	sensor->setPropLen(DATA_Z_ANGLE_ID, 4);
+#endif
 }
 
 /* 进入低功耗时的处理 */
@@ -212,7 +225,7 @@ int main(void)
 	m_lora = lora_task_init(m_lpm); 						//LORA任务初始化
 	m_slp = slp_task_init(m_lpm); 							//系统低功耗任务初始化
 	m_collapse = collapse_init(m_lpm);						//崩塌计任务初始化
-//	iot_init(sensor, m_inclinometer); 						//物联网协议属性初始化
+	iot_init(sensor, m_collapse, m_lora); 					//物联网协议属性初始化
 	
 	/**********************************系统任务设置**********************************/
 	sys_task_t task;
@@ -225,9 +238,6 @@ int main(void)
 	sys_startup(); 											//系统启动
 	LIGHT_OFF();
 	
-	nrf_delay_ms(300);
-	LIGHT_OFF();
-	nrf_delay_ms(300);
 //	uart_init();
 
 	while(1)
@@ -256,7 +266,7 @@ int main(void)
 #endif
 		
 		/* 物联网协议处理 */
-//		iot_operate();
+		iot_operate();
 		
 		/* 系统数据存储 */
 		sys_save_param_to_flash();

@@ -153,6 +153,7 @@ typedef struct radio_drv_funcs {
     int 		       (*radio_dio1_irq_func)					(uint8_t *addr,uint8_t *size);
     void		       (*radio_SetDIO3AsTCXOCtrl)			(uint8_t tcxoVoltage);  //设置补偿晶振电源输入大小
 	uint32_t (*radio_time_on_air_get)(uint8_t pkt_len);
+	int8_t (*radio_get_rssi)(void);
 }radio_drv_funcs_t;
 
 

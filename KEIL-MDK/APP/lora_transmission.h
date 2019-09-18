@@ -61,6 +61,7 @@ typedef struct {
 	FunctionalState is_idle_enter_lp; //DISABLE：LORA空闲状态不动作，ENABLE：LORA空闲状态进入低功耗模式
 	
 	/* 被动参数 */
+	int8_t rssi;
 	uint32_t tx_fail_times;
 }Lora_Param_t;
 
@@ -74,6 +75,7 @@ typedef struct {
 	void (*task_stop)(void);
 	void (*set_tx_data)(uint8_t* p_data, uint8_t size);
 	void (*task_operate)(void);
+	int8_t (*get_rssi)(void);
 }lora_obj_t;
 
 lora_obj_t* lora_task_init(lpm_obj_t* lpm_obj);

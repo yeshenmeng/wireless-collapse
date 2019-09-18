@@ -35,8 +35,6 @@ void swt_slp_cb(void)
 	slp_state = SLP_TIMEOUT;
 }
 
-#include "collapse.h"
-extern collapse_obj_t* m_collapse;
 static void slp_operate(void)
 {
 	swt_mod_t* timer = swt_get_handle();
@@ -50,8 +48,7 @@ static void slp_operate(void)
 			slp_state = SLP_IDLE;
 			slp_obj.state = SLP_ACTIVE;
 			uint32_t time_stamp = calendar->get_time_stamp();
-//			uint32_t sample_interval = param->iot_sample_interval;
-			uint32_t sample_interval = m_collapse->period/1000;
+			uint32_t sample_interval = param->iot_period;
 			slp_obj.sleep_time = sample_interval - time_stamp % sample_interval;
 			timer->sys_low_power->start(slp_obj.sleep_time*1000);
 			slp_obj.lpm_obj->task_set_stat(SLP_TASK_ID, LPM_TASK_STA_LP);

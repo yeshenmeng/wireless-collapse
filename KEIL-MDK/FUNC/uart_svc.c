@@ -11,9 +11,9 @@
 #include "string.h"
 extern inclinometer_obj_t* m_inclinometer;
 static uint8_t uart_rec_flag = 0;
-static uint8_t ble_rec_flag = 0;
-static uint16_t DebugSize = 0;
-static uint8_t DebugBuf[255];
+uint8_t ble_rec_flag = 0;
+uint16_t DebugSize = 0;
+uint8_t DebugBuf[255];
 static uint16_t UartRxBufSize = 0;
 static uint8_t UartRxBuf[255];
 static uint8_t cmd_flag = 0;

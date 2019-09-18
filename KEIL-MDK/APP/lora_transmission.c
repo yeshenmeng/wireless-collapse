@@ -27,22 +27,23 @@ static lora_obj_t lora_obj;
 static lora_conn_status_t lora_conn_status = LORA_OFFLINE;
 static lora_conn_status_t lora_pre_conn_status = LORA_OFFLINE;
 
-/* 等待网关回复最大数据长度
-   4：协议报头长度
-   1：协议数据段长度
-   2：协议测点短地址长度
-   1：协议属性个数长度
-   7：协议最大属性MASK
-   8：协议属性值长地址
-   2：协议属性值短地址
-   1：协议属性值模式
-   4：协议属性值采样间隔
-   4：协议属性值时间戳
-   4：协议属性值X轴阈值
-   4：协议属性值Y轴阈值
-   2：协议CRC校验
+/**
+ 等待网关回复最大数据长度
+ 4：协议报头长度
+ 1：协议数据段长度
+ 2：协议测点短地址长度
+ 1：协议属性个数长度
+ 7：协议最大属性MASK
+ 8：协议属性值长地址
+ 2：协议属性值短地址
+ 1：协议属性值模式
+ 4：协议属性值采样间隔
+ 4：协议属性值时间戳
+ 2：协议属性值加速度斜率阈值
+ 2：协议属性值连续数据点
+ 2：协议CRC校验
  */
-static uint8_t lora_max_wait_reply_len = 4 + 1 + 2 + 1 + 7 + 8 + 2 + 1 + 4 + 4 + 4 + 4 + 2;
+static uint8_t lora_max_wait_reply_len = 4 + 1 + 2 + 1 + 7 + 8 + 2 + 1 + 4 + 4 + 2 + 2 + 2;
 
 /* SPI驱动程序实例ID,ID和外设编号对应，0:SPI0  1:SPI1 2:SPI2 */
 #define SPI_INSTANCE  0 
@@ -91,6 +92,12 @@ static void lora_ext_int_cfg(void)
 	nrf_drv_gpiote_in_event_enable(LORA_IRQ_PIN, true);
 }
 
+static void signal_ext_cfg_default(void)
+{
+	nrfx_gpiote_in_event_disable(LORA_IRQ_PIN);
+	nrfx_gpiote_in_uninit(LORA_IRQ_PIN);
+}
+
 /* SPI事件处理函数 */
 static void spi_event_handler(nrf_drv_spi_evt_t const * p_event, void * p_context)
 {
@@ -106,6 +113,7 @@ static void lora_spi_cfg(void)
 	spi_config.miso_pin = LORA_SPI_MISO_PIN;
 	spi_config.mosi_pin = LORA_SPI_MOSI_PIN;
 	spi_config.sck_pin  = LORA_SPI_SCK_PIN;
+	spi_config.irq_priority = 0;
 	APP_ERROR_CHECK(nrf_drv_spi_init(&spi, &spi_config, spi_event_handler, NULL));
 }
 
@@ -182,6 +190,7 @@ static void lora_cfg(void)
 	
 static void lora_cfg_default(void)
 {
+	signal_ext_cfg_default();
 	lora_spi_cfg_default();
 	nrf_gpio_cfg_default(LORA_POWER_PIN);
 	nrf_gpio_cfg_default(LORA_TRANSMIT_PIN);
@@ -344,7 +353,10 @@ static void lora_load_publish_cmd_buf(void)
 	lora_tx_count += sizeof(cmdHeader);
 	
 	/* 数据段长度 */
-	lora_tx_buf[lora_tx_count] = 20;
+	lora_tx_buf[lora_tx_count] = 25;
+#if (IOT_PROTOCOL_WITH_ANGLE == 1)
+	lora_tx_buf[lora_tx_count] = 40;
+#endif
 	lora_tx_count += 1;
 	
 	/* 数据段测点短地址 */
@@ -353,37 +365,72 @@ static void lora_load_publish_cmd_buf(void)
 	lora_tx_count += 2;	
 	
 	/* 数据段属性个数 */
-	lora_tx_buf[lora_tx_count] = 4;
+	lora_tx_buf[lora_tx_count] = 5;
+#if (IOT_PROTOCOL_WITH_ANGLE == 1)
+	lora_tx_buf[lora_tx_count] = 8;
+#endif
 	lora_tx_count += 1;
 	
 	/* 数据段属性ID */
-	lora_tx_buf[lora_tx_count] = 6;
-	lora_tx_count += 1;
-	lora_tx_buf[lora_tx_count] = 7;
-	lora_tx_count += 1;
 	lora_tx_buf[lora_tx_count] = 8;
 	lora_tx_count += 1;
 	lora_tx_buf[lora_tx_count] = 9;
 	lora_tx_count += 1;
+	lora_tx_buf[lora_tx_count] = 10;
+	lora_tx_count += 1;
+	lora_tx_buf[lora_tx_count] = 11;
+	lora_tx_count += 1;
+	lora_tx_buf[lora_tx_count] = 12;
+	lora_tx_count += 1;
+#if (IOT_PROTOCOL_WITH_ANGLE == 1)
+	lora_tx_buf[lora_tx_count] = 13;
+	lora_tx_count += 1;
+	lora_tx_buf[lora_tx_count] = 14;
+	lora_tx_count += 1;
+	lora_tx_buf[lora_tx_count] = 15;
+	lora_tx_count += 1;
+#endif
 	
 	/* 数据段属性数据 */
-	wirelessCommSvc->_sensor->readPropToBuf(6, &lora_tx_buf[lora_tx_count]);
-	lora_tx_count += 1;
-	wirelessCommSvc->_sensor->readPropToBuf(7, &lora_tx_buf[lora_tx_count]);
-#if (COMM_TRANSMISSION_FORMAT == 1)
-	swap_reverse((uint8_t*)&lora_tx_buf[lora_tx_count], 4);
-#endif
-	lora_tx_count += 4;
 	wirelessCommSvc->_sensor->readPropToBuf(8, &lora_tx_buf[lora_tx_count]);
-#if (COMM_TRANSMISSION_FORMAT == 1)
-	swap_reverse((uint8_t*)&lora_tx_buf[lora_tx_count], 4);
-#endif
-	lora_tx_count += 4;
+	lora_tx_count += 1;
 	wirelessCommSvc->_sensor->readPropToBuf(9, &lora_tx_buf[lora_tx_count]);
 #if (COMM_TRANSMISSION_FORMAT == 1)
 	swap_reverse((uint8_t*)&lora_tx_buf[lora_tx_count], 4);
 #endif
 	lora_tx_count += 4;
+	wirelessCommSvc->_sensor->readPropToBuf(10, &lora_tx_buf[lora_tx_count]);
+#if (COMM_TRANSMISSION_FORMAT == 1)
+	swap_reverse((uint8_t*)&lora_tx_buf[lora_tx_count], 4);
+#endif
+	lora_tx_count += 4;
+	wirelessCommSvc->_sensor->readPropToBuf(11, &lora_tx_buf[lora_tx_count]);
+#if (COMM_TRANSMISSION_FORMAT == 1)
+	swap_reverse((uint8_t*)&lora_tx_buf[lora_tx_count], 4);
+#endif
+	lora_tx_count += 4;
+	wirelessCommSvc->_sensor->readPropToBuf(12, &lora_tx_buf[lora_tx_count]);
+#if (COMM_TRANSMISSION_FORMAT == 1)
+	swap_reverse((uint8_t*)&lora_tx_buf[lora_tx_count], 4);
+#endif
+	lora_tx_count += 4;
+#if (IOT_PROTOCOL_WITH_ANGLE == 1)
+	wirelessCommSvc->_sensor->readPropToBuf(13, &lora_tx_buf[lora_tx_count]);
+#if (COMM_TRANSMISSION_FORMAT == 1)
+	swap_reverse((uint8_t*)&lora_tx_buf[lora_tx_count], 4);
+#endif
+	lora_tx_count += 4;
+	wirelessCommSvc->_sensor->readPropToBuf(14, &lora_tx_buf[lora_tx_count]);
+#if (COMM_TRANSMISSION_FORMAT == 1)
+	swap_reverse((uint8_t*)&lora_tx_buf[lora_tx_count], 4);
+#endif
+	lora_tx_count += 4;
+	wirelessCommSvc->_sensor->readPropToBuf(15, &lora_tx_buf[lora_tx_count]);
+#if (COMM_TRANSMISSION_FORMAT == 1)
+	swap_reverse((uint8_t*)&lora_tx_buf[lora_tx_count], 4);
+#endif
+	lora_tx_count += 4;
+#endif
 
 	/* CRC16 */
 	uint16_t crc16 = wirelessCommSvc->modbusRtuCRC(lora_tx_buf, lora_tx_count);
@@ -441,6 +488,10 @@ static void lora_task_operate(void)
 			if(lora_cad_detect() == SET)
 			{
 				LIGHT_1_ON();
+				if(lora_tx_count > lora_mtu)
+				{
+					lora_tx_count = 0;
+				}
 				if(wireless_drv.radio_TXData(lora_tx_buf, lora_tx_count) == LORA_RET_CODE_ERR)
 				{
 					lora_state = LORA_TX_FAIL;
@@ -471,6 +522,7 @@ static void lora_task_operate(void)
 			uint8_t rx_size = 0;
 			uint8_t *rx_data = (uint8_t*)malloc(255);
 			wireless_drv.radio_dio1_irq_func(rx_data, &rx_size);
+			lora_obj.param.rssi = wireless_drv.radio_get_rssi();
 			rx_size = 4 + 1 + *(rx_data + 4) + 2; //根据接收的数据长度获取总的数据长度
 			wireless_comm_services_t* wirelessCommSvc = Wireless_CommSvcGetHandle();
 			wirelessCommSvc->wirelessRxCpltCallBack(rx_data, rx_size); //解析数据
@@ -556,6 +608,11 @@ static void lora_task_operate(void)
 	}
 }
 
+int8_t lora_get_rssi(void)
+{
+	return lora_obj.param.rssi;
+}
+
 void lora_reset(void)
 {
 	lora_state = LORA_IDLE;
@@ -588,6 +645,7 @@ lora_obj_t* lora_task_init(lpm_obj_t* lpm_obj)
 	lora_obj.param.tx_max_delay_time = LORA_TX_MAX_DELAY_TIME;
 	lora_obj.param.task_time_slice = SWT_LORA_TIME_SLICE_TIME;
 	lora_obj.param.rx_timeout_base = LORA_RX_TIMEOUT_BASE;
+	lora_obj.param.rssi = -127;
 	lora_obj.param.tx_fail_times = 0;
 	lora_obj.param.tx_max_fail_times = LORA_TX_MAX_FIAL_TIMES;
 	lora_obj.param.is_idle_enter_lp = ENABLE;
@@ -598,9 +656,26 @@ lora_obj_t* lora_task_init(lpm_obj_t* lpm_obj)
 	lora_obj.task_stop = lora_task_stop;
 	lora_obj.set_tx_data = lora_set_tx_data;
 	lora_obj.task_operate = lora_task_operate;
+	lora_obj.get_rssi = lora_get_rssi;
 	
 	lora_obj.lpm_obj->task_reg(LORA_TASK_ID);
-	
+
+//	nrf_gpio_cfg(LORA_POWER_PIN,
+//				 NRF_GPIO_PIN_DIR_OUTPUT,
+//				 NRF_GPIO_PIN_INPUT_DISCONNECT,
+//				 NRF_GPIO_PIN_NOPULL,
+//				 NRF_GPIO_PIN_S0S1,
+//				 NRF_GPIO_PIN_NOSENSE);
+//	nrf_delay_ms(3000);
+//	nrf_gpio_pin_set(LORA_POWER_PIN);
+//	while(1)
+//	{
+////		nrf_delay_ms(3000);
+////		nrf_gpio_pin_set(LORA_POWER_PIN);
+//		nrf_delay_ms(3000);
+//		nrf_gpio_pin_clear(LORA_POWER_PIN);
+//	}
+
 	return &lora_obj;
 }
 
